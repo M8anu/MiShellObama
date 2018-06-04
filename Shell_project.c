@@ -17,6 +17,8 @@ Author: Manuel Ariza López
 
 #include "job_control.h"   // remember to compile with module job_control.c 
 
+int searchInternal(const char* args[]);
+void print_shell(void);
 #define MAX_LINE 256 /* 256 chars per line, per command, should be enough. */
 
 // -----------------------------------------------------------------------
@@ -34,6 +36,7 @@ int main(void)
     enum status status_res; /* status processed by analyze_status() */
     int info;               /* info processed by analyze_status() */
 
+    ignore_terminal_signals();
     /* the  (BASIC) steps are:
              (1) fork a child process using fork()
              (2) the child process will invoke execvp()
@@ -50,31 +53,56 @@ int main(void)
         
         if(args[0]==NULL) continue;   // if empty command
 
+        if(searchInternal(args) == 1) {
+            continue;
+        }
+
         pid_fork = fork();
         
         if(pid_fork == 0){
-        
-           execvp(args[0], args);
-           printf("\033[31mCommand not found my lord/lady:\033[0m %s\n", args[0]);
-           exit(127);
+
+           restore_terminal_signals();   
+         new_process_group(getpid());
+         execvp(args[0], args);
+         printf("\033[31mCommand not found my lord/lady:\033[0m %s\n", args[0]);
+         exit(127);
+
+     }else{
+
+        if(background == 0){
+
+            set_terminal(pid_fork);
+            pid_wait = waitpid(pid_fork, &status, WUNTRACED);
+            status_res = analyze_status(status, &info);
+            set_terminal(getpid());
+
+            if(status_res != EXITED || info != 127) {
+                printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+            }
 
         }else{
 
-            if(background == 0){
-
-                pid_wait = waitpid(pid_fork, &status, WUNTRACED);
-                status_res = analyze_status(status, &info);
-                if(status_res != EXITED || info != 127) {
-                    printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
-                }
-
-            }else{
-
-                printf("Background job running... pid: %d , command: %s\n", pid_fork, args[0]);
-            }
+            printf("Background job running... pid: %d , command: %s\n", pid_fork, args[0]);
         }
+    }
 
-        
+
 
     } // end while
+
+    void print_shell(){
+        printf("\n
+───█───▄▀█▀▀█▀▄▄───▐█──────▄▀█▀▀█▀▄▄
+──█───▀─▐▌──▐▌─▀▀──▐█─────▀─▐▌──▐▌─█▀
+─▐▌──────▀▄▄▀──────▐█▄▄──────▀▄▄▀──▐▌
+─█────────────────────▀█────────────█
+▐█─────────────────────█▌───────────█
+▐█─────────────────────█▌───────────█
+─█───────────────█▄───▄█────────────█
+─▐▌───────────────▀███▀────────────▐▌
+──█──────────▀▄───────────▄▀───────█
+───█───────────▀▄▄▄▄▄▄▄▄▄▀────────█");
+
+        printf("\033[33mWelcome to MiShell Obama\033[0m ");
+}
 }
