@@ -12,6 +12,7 @@ To compile and run the program:
    $ ./Shell          
     (then type ^D to exit program)
 
+Author: Manuel Ariza López
 **/
 
 #include "job_control.h"   // remember to compile with module job_control.c 
@@ -33,21 +34,47 @@ int main(void)
     enum status status_res; /* status processed by analyze_status() */
     int info;               /* info processed by analyze_status() */
 
-    while (1)   /* Program terminates normally inside get_command() after ^D is typed*/
-    {           
-        printf("COMMAND->");
-        fflush(stdout);
-        get_command(inputBuffer, MAX_LINE, args, &background);  /* get next command */
-        
-        if(args[0]==NULL) continue;   // if empty command
-
-        /* the steps are:
+    /* the  (BASIC) steps are:
              (1) fork a child process using fork()
              (2) the child process will invoke execvp()
              (3) if background == 0, the parent will wait, otherwise continue 
              (4) Shell shows a status message for processed command 
              (5) loop returns to get_commnad() function
         */
+
+    while (1)   /* Program terminates normally inside get_command() after ^D is typed*/
+    {           
+        printf("\033[94mGive me an order my lord/lady:\033[0m ");
+        fflush(stdout);
+        get_command(inputBuffer, MAX_LINE, args, &background);  /* get next command */
+        
+        if(args[0]==NULL) continue;   // if empty command
+
+        pid_fork = fork();
+        
+        if(pid_fork == 0){
+        
+           execvp(args[0], args);
+           printf("\033[31mCommand not found my lord/lady:\033[0m %s\n", args[0]);
+           exit(127);
+
+        }else{
+
+            if(background == 0){
+
+                pid_wait = waitpid(pid_fork, &status, WUNTRACED);
+                status_res = analyze_status(status, &info);
+                if(status_res != EXITED || info != 127) {
+                    printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                }
+
+            }else{
+
+                printf("Background job running... pid: %d , command: %s\n", pid_fork, args[0]);
+            }
+        }
+
+        
 
     } // end while
 }
