@@ -15,10 +15,15 @@ To compile and run the program:
 Author: Manuel Ariza López
 **/
 
+#include <signal.h> //primero las cabeceras del sistema
 #include "job_control.h"   // remember to compile with module job_control.c 
 
 int searchInternal(const char* args[]);
+void handler(int);
 void print_shell(void);
+
+job* jobb; //Creamos una lista de trabajos
+
 #define MAX_LINE 256 /* 256 chars per line, per command, should be enough. */
 
 // -----------------------------------------------------------------------
@@ -45,6 +50,8 @@ int main(void)
              (5) loop returns to get_commnad() function
         */
     print_shell();
+    signal(SIGCHLD, handler);
+    jobb = new_list("Jobb");
 
     while (1)   /* Program terminates normally inside get_command() after ^D is typed*/
     {           
@@ -80,11 +87,19 @@ int main(void)
                 set_terminal(getpid()); //le devuelve la terminal a MiShell
 
                 if(status_res != EXITED || info != 127) { // comprueba que el comando introducido efectivamente es valido
-                    printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                    if(status_res == SUSPENDED) {
+                        job* Antonio = new_job(pid_fork, args[0], STOPPED);
+                        add_job(jobb, Antonio);
+                        printf("\rSuspended pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                    } else {
+                        printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                    }
                 }
 
             }else{
 
+                job* Antonio = new_job(pid_fork, args[0], BACKGROUND); //Creamos un nuevo trabajo segun los hearders del archivo job_control.h
+                add_job(jobb, Antonio); //Anyadimos un trabajo, pasando la lista de trabajos creada y el trabajo creado
                 printf("Background job running... pid: %d , command: %s\n", pid_fork, args[0]);
             }
         }
@@ -109,4 +124,43 @@ void print_shell(){
            "───█───────────▀▄▄▄▄▄▄▄▄▄▀────────█\n"
 
            "\n      Welcome to MiShell Obama\033[0m\n\n");
+}
+
+void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecutado en segundo plano sufre algun evento(muere, suspendido, reanudado)
+
+    pid_t pid_wait;
+    int status, info;
+    enum status status_res;
+    int auxDied;
+    job* aux = jobb->next, *auxaux;
+    //Aux != NULL lo usamos debido a que en una LinkedList siempre va a haber un elemento siguiente, si es NULL, sabemos que hay un NULL, claro, pero jeje
+    while(aux != NULL) {
+
+        auxDied = 0;
+        pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG | WCONTINUED); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
+        //Aux->pgid indica como accedemos al id del proceso encerrado en la casilla actual (aux) del array de trabajos (jobb)
+
+        if(pid_wait == aux->pgid){ //Comprobamos si le ha pasado algo al proceso actual
+
+            status_res = analyze_status(status, &info); //analiza el estado del proceso actual
+
+            if(status_res == SUSPENDED){
+
+                aux->state = STOPPED;
+                printf("La tarea %s con pid %d, está en suspensión\n", aux->command, aux->pgid);
+            }else{
+
+                printf("La tarea %s con pid %d, ha muerto por %s\n",  aux->command, aux->pgid, status_strings[status_res]);
+                auxaux = aux; //Guardamos el proceso actual porque en la siguiente linea la vamos a perder
+                aux = aux->next; //Avanzamos al siguiente porque aux va a ser eliminado y no lo podemos usar mas
+                delete_job(jobb, auxaux); //Borramos el proceso actual
+
+                auxDied=1;
+
+            }
+        }
+
+        if(auxDied == 0)
+        aux = aux->next; //Avanza a la siguiente tarea y esa nueva tarea es el nuevo indice, ricos punteros de C
+    }
 }

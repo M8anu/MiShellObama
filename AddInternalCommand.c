@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "job_control.h"
+
+extern job* jobb;
 
 struct command {
 
@@ -13,10 +16,12 @@ struct command {
 
 // Declaracion de comandos internos
 void changeDirectory(int count, const char* args[]);
+void printJobList(int count, const char* args[]);
 
 // Lista de comandos internos
 static struct command commands[] = {
-    {"cd", &changeDirectory}
+    {"cd", &changeDirectory}, 
+    {"jobs", &printJobList} 
 };
 
 int searchInternal(const char* args[]){
@@ -51,5 +56,10 @@ void changeDirectory(int count, const char* args[]){
             perror(args[1]);
         }
     }
+}
+
+void printJobList(int count, const char* args[]){
+
+    print_job_list(jobb);
 }
 
