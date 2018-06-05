@@ -87,19 +87,25 @@ int main(void)
                 set_terminal(getpid()); //le devuelve la terminal a MiShell
 
                 if(status_res != EXITED || info != 127) { // comprueba que el comando introducido efectivamente es valido
-                    if(status_res == SUSPENDED) {
+                    if(status_res == SUSPENDED) { //ATENTO AQUI
+
+                        block_SIGCHLD();
                         job* Antonio = new_job(pid_fork, args[0], STOPPED);
                         add_job(jobb, Antonio);
-                        printf("\rSuspended pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                        unblock_SIGCHLD();
+                        printf("\rForeground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
                     } else {
+                        //El proceso ha terminado correctamente
                         printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
                     }
                 }
 
             }else{
 
+                block_SIGCHLD();
                 job* Antonio = new_job(pid_fork, args[0], BACKGROUND); //Creamos un nuevo trabajo segun los hearders del archivo job_control.h
                 add_job(jobb, Antonio); //Anyadimos un trabajo, pasando la lista de trabajos creada y el trabajo creado
+                unblock_SIGCHLD();
                 printf("Background job running... pid: %d , command: %s\n", pid_fork, args[0]);
             }
         }
@@ -134,7 +140,7 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
     int auxDied;
     job* aux = jobb->next, *auxaux;
     //Aux != NULL lo usamos debido a que en una LinkedList siempre va a haber un elemento siguiente, si es NULL, sabemos que hay un NULL, claro, pero jeje
-    while(aux != NULL) {
+    while(aux != NULL){
 
         auxDied = 0;
         pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG | WCONTINUED); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
@@ -160,7 +166,8 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
             }
         }
 
-        if(auxDied == 0)
-        aux = aux->next; //Avanza a la siguiente tarea y esa nueva tarea es el nuevo indice, ricos punteros de C
+        if(auxDied == 0){
+            aux = aux->next; //Avanza a la siguiente tarea y esa nueva tarea es el nuevo indice, ricos punteros de C
+        }
     }
 }

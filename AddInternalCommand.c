@@ -17,11 +17,15 @@ struct command {
 // Declaracion de comandos internos
 void changeDirectory(int count, const char* args[]);
 void printJobList(int count, const char* args[]);
+void backGround(int count, const char* args[]);
+void foreGround(int count, const char* args[]);
 
 // Lista de comandos internos
 static struct command commands[] = {
     {"cd", &changeDirectory}, 
-    {"jobs", &printJobList} 
+    {"jobs", &printJobList}, 
+    {"bg", &backGround}, 
+    {"fg", &foreGround}
 };
 
 int searchInternal(const char* args[]){
@@ -59,7 +63,81 @@ void changeDirectory(int count, const char* args[]){
 }
 
 void printJobList(int count, const char* args[]){
-
+    block_SIGCHLD();
     print_job_list(jobb);
+    unblock_SIGCHLD();
+
 }
 
+void backGround(int count, const char* args[]) {
+
+    job* jobbaux;
+    int pos;
+    if(count == 1){
+        pos = 1;
+
+    }else{
+        pos = atoi(args[1]);
+
+    }
+
+    if(pos == 0){ //atoi ha fallado(pe: "pato")
+
+        printf("A number has not been introduced: %s\n", args[1]);
+
+    }else{
+
+        block_SIGCHLD();
+        jobbaux = get_item_bypos(jobb, pos); //bg 2 pe: indica que el trabajo que ocupa la posicion 2(args[1]) debe ir a bg
+        
+        if(jobbaux == NULL){    
+
+            printf("\033[31mJob not found:\033[0m %d\n", pos); //No existe tal trabajo a mandar a background
+
+        }else{
+
+            killpg(jobbaux->pgid, SIGCONT);
+            jobbaux->state = BACKGROUND;
+            printf("El proceso: %s ha sido enviado a background.\n", jobbaux->command);           
+        }
+
+        unblock_SIGCHLD();
+
+    }
+
+}
+
+void foreGround(int count, const char* args[]) {
+
+    job* jobbaux;
+    int pos, status, pid_wait;
+    if(count == 1){
+        pos = 1;
+
+    }else{
+        pos = atoi(args[1]);
+
+    }
+
+    if(pos == 0){ //atoi ha fallado(pe: "pato")
+
+        printf("A number has not been introduced: %s\n", args[1]);
+
+    }else{
+
+        block_SIGCHLD();
+        set_terminal(jobbaux->pgid);
+        jobbaux->state = FOREGROUND;
+        killpg(jobbaux->pgid, SIGCONT);
+        pid_wait = waitpid(jobbaux->pgid, &status, WUNTRACED);
+
+        if(pid_wait == jobbaux->pgid)
+        {
+            printf("El proceso %s ha finalizado.\n", jobbaux->command);
+            pos = delete_job(jobb, jobbaux);
+        }
+
+        set_terminal(getpid());
+    }
+    unblock_SIGCHLD();
+}
