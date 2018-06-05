@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 struct command {
 
     const char* command_name;
+    //El primer argumento es el numero de elementos del array
+    //El segundo, el array, es el array de argumentos 
     void (*funcc)(int , const char* []);
 };
 
@@ -40,8 +43,13 @@ int searchInternal(const char* args[]){
 }
 
 void changeDirectory(int count, const char* args[]){
-
-
+    //cd a secas, nos lleva a home
+    if(count == 1){
+        chdir(getenv("HOME"));
+    } else { //en caso de haber dos o más argumentos, imprime un error si no ha podido ejecutar el comando correctamente
+        if(chdir(args[1]) == -1){
+            perror(args[1]);
+        }
+    }
 }
-
 
