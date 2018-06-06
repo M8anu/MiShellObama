@@ -143,7 +143,7 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
     while(aux != NULL){
 
         auxDied = 0;
-        pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG | WCONTINUED); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
+        pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
         //Aux->pgid indica como accedemos al id del proceso encerrado en la casilla actual (aux) del array de trabajos (jobb)
 
         if(pid_wait == aux->pgid){ //Comprobamos si le ha pasado algo al proceso actual

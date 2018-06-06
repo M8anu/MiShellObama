@@ -127,6 +127,13 @@ void foreGround(int count, const char* args[]) {
 
         block_SIGCHLD();
         jobbaux = get_item_bypos(jobb, pos); //fg 2 pe: indica que el trabajo que ocupa la posicion 2(args[1]) debe ir a fg
+
+        if(jobbaux == NULL){    
+
+            printf("\033[31mJob not found:\033[0m %d\n", pos); //No existe tal trabajo a mandar a foreground
+
+        }else{
+            
         set_terminal(jobbaux->pgid);
         jobbaux->state = FOREGROUND;
         killpg(jobbaux->pgid, SIGCONT);
@@ -150,4 +157,5 @@ void foreGround(int count, const char* args[]) {
         set_terminal(getpid());
     }
     unblock_SIGCHLD();
+}
 }
