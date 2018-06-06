@@ -6,12 +6,12 @@
 
 extern job* jobb;
 
-struct command {
+struct command { //struct de C++
 
     const char* command_name;
     //El primer argumento es el numero de elementos del array
     //El segundo, el array, es el array de argumentos 
-    void (*funcc)(int , const char* []);
+    void (*funcc)(int , const char* []); //*[] = **punteros' things
 };
 
 // Declaracion de comandos internos
@@ -30,8 +30,8 @@ static struct command commands[] = {
 
 int searchInternal(const char* args[]){
 
-    int pos=0;
-    int count=0;
+    int pos=0;//iterador, lo declaramos aqui y tambien lo inicializamos, solo podemos declarar variables al principio de la funcion(ThisExamC)
+    int count=0; //numero de argumentos
 
     while(args[count] != NULL){
 
@@ -42,7 +42,7 @@ int searchInternal(const char* args[]){
 
         if(strcmp(commands[pos].command_name, args[0]) == 0){
 
-            commands[pos].funcc(count, args);
+            commands[pos].funcc(count, args); //Not Java, indica que si el comando introducido es igual a uno almacenado en esta clase, ejecutamos su funcion
             return 1; //ya sé que es un return en un if... Aunque usamos el comodín de que en C es usado, así evitamos que itere el for completo cuando no se requiere
 
         }
@@ -54,7 +54,7 @@ int searchInternal(const char* args[]){
 void changeDirectory(int count, const char* args[]){
     //cd a secas, nos lleva a home
     if(count == 1){
-        chdir(getenv("HOME"));
+        chdir(getenv("HOME"));//devuelve el valor de la variable de entorno asociada a HOME
     } else { //en caso de haber dos o más argumentos, imprime un error si no ha podido ejecutar el comando correctamente
         if(chdir(args[1]) == -1){
             perror(args[1]);
@@ -64,7 +64,7 @@ void changeDirectory(int count, const char* args[]){
 
 void printJobList(int count, const char* args[]){
     block_SIGCHLD();
-    print_job_list(jobb);
+    print_job_list(jobb); //gracias a Kashke que esta funcion esta ya implementada
     unblock_SIGCHLD();
 
 }
@@ -77,7 +77,7 @@ void backGround(int count, const char* args[]) {
         pos = 1;
 
     }else{
-        pos = atoi(args[1]);
+        pos = atoi(args[1]); //"1" -> 1 
 
     }
 
@@ -140,7 +140,7 @@ void foreGround(int count, const char* args[]) {
         pid_wait = waitpid(jobbaux->pgid, &status, WUNTRACED);
         status_res = analyze_status(status, &info);
 
-        if(pid_wait == jobbaux->pgid){
+        if(pid_wait == jobbaux->pgid){ //Si ha pasado algo...
 
             if(status_res == SUSPENDED){
 
@@ -154,7 +154,7 @@ void foreGround(int count, const char* args[]) {
             }
         }
 
-        set_terminal(getpid());
+        set_terminal(getpid()); //Le devuelves la terminal a MiShell
     }
     unblock_SIGCHLD();
 }

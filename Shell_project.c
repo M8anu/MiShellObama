@@ -41,7 +41,7 @@ int main(void)
     enum status status_res; /* status processed by analyze_status() */
     int info;               /* info processed by analyze_status() */
 
-    ignore_terminal_signals();
+    ignore_terminal_signals(); //Hace que el shell no crashee en caso de que los hijos hagan sus cosas
     /* the  (BASIC) steps are:
              (1) fork a child process using fork()
              (2) the child process will invoke execvp()
@@ -49,8 +49,8 @@ int main(void)
              (4) Shell shows a status message for processed command 
              (5) loop returns to get_commnad() function
         */
-    print_shell();
-    signal(SIGCHLD, handler);
+    print_shell(); //Imprime una bonita introducción a la shell
+    signal(SIGCHLD, handler); //Cuando llegue una señal SIGCHLD, se ejecuta el manejador
     jobb = new_list("Jobb");
 
     while (1)   /* Program terminates normally inside get_command() after ^D is typed*/
@@ -64,6 +64,7 @@ int main(void)
         if(searchInternal((const char**) args) == 1) {
                                         //lifehack, si reconoce un comando interno, continue quiere decir que ejecuta de nuevo desde el comienzo del bucle, para así
                                         // ejecutar el comando interno encontrado
+                                        //doble puntero, array de arrays
             continue;
         }
 
@@ -71,8 +72,8 @@ int main(void)
         
         if(pid_fork == 0){ //ESTE CODIGO es del hijo
 
-            restore_terminal_signals(); //recupera las señales ignoradas previamente
-            new_process_group(getpid()); //este es el orden correcto, para que no nos suspenda los procesos 
+            restore_terminal_signals(); //recupera las señales ignoradas previamente ya que aqui no van a causar conflicto, ademas, pueden ser utiles para el hijo
+            new_process_group(getpid()); //este es el orden correcto, para que no nos suspenda los procesos (no reason given)
             execvp(args[0], args); //ejecuta el comando, metaformosis de Kafka, el hijo, shell originalmente, se transforma en el programa a ejecutar
             //si no ha podido ejecutar correctamente, arroja este error
             printf("\033[31mCommand not found m8:\033[0m %s\n", args[0]);
@@ -88,7 +89,7 @@ int main(void)
                 set_terminal(getpid()); //le devuelve la terminal a MiShell
 
                 if(status_res != EXITED || info != 127) { // comprueba que el comando introducido efectivamente es valido
-                    if(status_res == SUSPENDED) { //ATENTO AQUI
+                    if(status_res == SUSPENDED) { //ATENTO AQUI recuerda SUSPENDED
 
                         block_SIGCHLD();
                         job* Antonio = new_job(pid_fork, args[0], STOPPED);
@@ -150,14 +151,15 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
         auxDied = 0;
         pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG | WCONTINUED); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
         //Aux->pgid indica como accedemos al id del proceso encerrado en la casilla actual (aux) del array de trabajos (jobb)
+        //Con wait esperamos la respuesta del proceso, y de no haberla WNOHANG hace que devuelva 0 en lugar de esperar a que ocurra algo
 
-        if(pid_wait == aux->pgid){ //Comprobamos si le ha pasado algo al proceso actual
+        if(pid_wait == aux->pgid){ //Comprobamos si le ha pasado algo al proceso actual(le ha pasado)
 
             status_res = analyze_status(status, &info); //analiza el estado del proceso actual
 
             if(status_res == CONTINUED){
 
-                aux->state = BACKGROUND;
+                aux->state = BACKGROUND; //Anotamos la reanimacion de un proceso a background, no puede ser a foreground, es solo cosa de Shell Padre
                 printf("Process %s with pid %d, has been resumed again\n", aux->command, aux->pgid);
 
 
@@ -168,7 +170,7 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
                 aux = aux->next; //Avanzamos al siguiente porque aux va a ser eliminado y no lo podemos usar mas
                 delete_job(jobb, auxaux); //Borramos el proceso actual
 
-                auxDied=1;
+                auxDied=1; //Ponemos esto para que si muere, no avance al if de abajo, crashea, porque pega dos saltos, perdiendo el link
                 
             }else{
                 aux->state = STOPPED;
