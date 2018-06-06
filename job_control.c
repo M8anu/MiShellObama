@@ -189,7 +189,12 @@ enum status analyze_status(int status, int *info)
         *info=WSTOPSIG(status);
         return(SUSPENDED);
     
-    }else 
+    }else if(WIFCONTINUED(status)){
+
+        *info=0;
+        return(CONTINUED);
+
+    }else
     {
         // el proceso termio
         if (WIFSIGNALED (status))

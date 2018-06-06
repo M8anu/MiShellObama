@@ -61,7 +61,8 @@ int main(void)
         
         if(args[0]==NULL) continue;   // if empty command
 
-        if(searchInternal(args) == 1) { //lifehack, si reconoce un comando interno, continue quiere decir que ejecuta de nuevo desde el comienzo del bucle, para así
+        if(searchInternal((const char**) args) == 1) {
+                                        //lifehack, si reconoce un comando interno, continue quiere decir que ejecuta de nuevo desde el comienzo del bucle, para así
                                         // ejecutar el comando interno encontrado
             continue;
         }
@@ -93,10 +94,10 @@ int main(void)
                         job* Antonio = new_job(pid_fork, args[0], STOPPED);
                         add_job(jobb, Antonio);
                         unblock_SIGCHLD();
-                        printf("\rForeground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                        printf("\rForeground pid: %d , command: %s , %s , info: %d \n", pid_wait, args[0], status_strings[status_res], info);
                     } else {
                         //El proceso ha terminado correctamente
-                        printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_fork, args[0], status_strings[status_res], info);
+                        printf("Foreground pid: %d , command: %s , %s , info: %d \n", pid_wait, args[0], status_strings[status_res], info);
                     }
                 }
 
@@ -128,8 +129,12 @@ void print_shell(){
            "─▐▌───────────────▀███▀────────────▐▌\n"
            "──█──────────▀▄───────────▄▀───────█\n"
            "───█───────────▀▄▄▄▄▄▄▄▄▄▀────────█\n"
+ 
+           "\n      Welcome to MiShell Obama\n\n"
+           "-Name courtesy of Zu\n"
+           "-Constant help and support by @melchor9000(Melchor)\033[0m\n\n"
+           );
 
-           "\n      Welcome to MiShell Obama\033[0m\n\n");
 }
 
 void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecutado en segundo plano sufre algun evento(muere, suspendido, reanudado)
@@ -143,15 +148,22 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
     while(aux != NULL){
 
         auxDied = 0;
-        pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
+        pid_wait = waitpid(aux->pgid, &status, WUNTRACED | WNOHANG | WCONTINUED); //Usamos OR bit a bit, es decir, 0 -> 1 -> 11 -> 111
         //Aux->pgid indica como accedemos al id del proceso encerrado en la casilla actual (aux) del array de trabajos (jobb)
 
         if(pid_wait == aux->pgid){ //Comprobamos si le ha pasado algo al proceso actual
 
             status_res = analyze_status(status, &info); //analiza el estado del proceso actual
 
-            if(status_res != SUSPENDED){
-                printf("La tarea %s con pid %d, ha muerto por %s\n",  aux->command, aux->pgid, status_strings[status_res]);
+            if(status_res == CONTINUED){
+
+                aux->state = BACKGROUND;
+                printf("Process %s with pid %d, has been resumed again\n", aux->command, aux->pgid);
+
+
+            }else if(status_res != SUSPENDED){
+
+                printf("Process %s with pid %d, has finished because of %s\n",  aux->command, aux->pgid, status_strings[status_res]);
                 auxaux = aux; //Guardamos el proceso actual porque en la siguiente linea la vamos a perder
                 aux = aux->next; //Avanzamos al siguiente porque aux va a ser eliminado y no lo podemos usar mas
                 delete_job(jobb, auxaux); //Borramos el proceso actual
@@ -160,7 +172,7 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
                 
             }else{
                 aux->state = STOPPED;
-                printf("La tarea %s con pid %d, está en suspensión\n", aux->command, aux->pgid);
+                printf("Process %s with pid %d, is suspended\n", aux->command, aux->pgid);
 
             }
         }

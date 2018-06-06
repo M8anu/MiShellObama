@@ -133,7 +133,7 @@ void foreGround(int count, const char* args[]) {
             printf("\033[31mJob not found:\033[0m %d\n", pos); //No existe tal trabajo a mandar a foreground
 
         }else{
-            
+
         set_terminal(jobbaux->pgid);
         jobbaux->state = FOREGROUND;
         killpg(jobbaux->pgid, SIGCONT);
@@ -145,11 +145,11 @@ void foreGround(int count, const char* args[]) {
             if(status_res == SUSPENDED){
 
                 jobbaux->state = STOPPED;
-                printf("La tarea %s con pid %d, está en suspensión\n", jobbaux->command, jobbaux->pgid);
+                printf("Process %s with pid %d, is suspended\n", jobbaux->command, jobbaux->pgid);
             
             }else{
 
-            printf("El proceso %s ha finalizado.\n", jobbaux->command);
+            printf("Process %s has finished.\n", jobbaux->command);
             pos = delete_job(jobb, jobbaux);
             }
         }
