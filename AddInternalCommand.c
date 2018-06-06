@@ -96,9 +96,9 @@ void backGround(int count, const char* args[]) {
 
         }else{
 
-            killpg(jobbaux->pgid, SIGCONT);
             jobbaux->state = BACKGROUND;
-            printf("El proceso: %s ha sido enviado a background.\n", jobbaux->command);           
+            killpg(jobbaux->pgid, SIGCONT);
+            printf("Process: %s has been sent to background.\n", jobbaux->command);           
         }
 
         unblock_SIGCHLD();
@@ -110,7 +110,7 @@ void backGround(int count, const char* args[]) {
 void foreGround(int count, const char* args[]) {
 
     job* jobbaux;
-    int pos, status, pid_wait;
+    int pos, status, pid_wait, status_res, info;
     if(count == 1){
         pos = 1;
 
@@ -131,11 +131,20 @@ void foreGround(int count, const char* args[]) {
         jobbaux->state = FOREGROUND;
         killpg(jobbaux->pgid, SIGCONT);
         pid_wait = waitpid(jobbaux->pgid, &status, WUNTRACED);
+        status_res = analyze_status(status, &info);
 
-        if(pid_wait == jobbaux->pgid)
-        {
+        if(pid_wait == jobbaux->pgid){
+
+            if(status_res == SUSPENDED){
+
+                jobbaux->state = STOPPED;
+                printf("La tarea %s con pid %d, está en suspensión\n", jobbaux->command, jobbaux->pgid);
+            
+            }else{
+
             printf("El proceso %s ha finalizado.\n", jobbaux->command);
             pos = delete_job(jobb, jobbaux);
+            }
         }
 
         set_terminal(getpid());
