@@ -154,6 +154,12 @@ void handler(int m){ //A esta funcion se la llama cuando un proceso hijo ejecuta
 
                 aux->state = STOPPED;
                 printf("La tarea %s con pid %d, está en suspensión\n", aux->command, aux->pgid);
+            
+            }else if(aux->state == STOPPED && status_res == CONTINUED){
+                //Si se ha suspendido, hay que anotarlo y notificarlo
+                aux->state = BACKGROUND;
+                printf(" - %d %s ha sido continuado\n", aux->pgid, aux->command);
+                
             }else{
 
                 printf("La tarea %s con pid %d, ha muerto por %s\n",  aux->command, aux->pgid, status_strings[status_res]);

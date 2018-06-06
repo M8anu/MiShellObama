@@ -126,6 +126,7 @@ void foreGround(int count, const char* args[]) {
     }else{
 
         block_SIGCHLD();
+        jobbaux = get_item_bypos(jobb, pos); //fg 2 pe: indica que el trabajo que ocupa la posicion 2(args[1]) debe ir a fg
         set_terminal(jobbaux->pgid);
         jobbaux->state = FOREGROUND;
         killpg(jobbaux->pgid, SIGCONT);
