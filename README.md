@@ -4,8 +4,6 @@ Tarea de evaluación para la parte práctica de la asignatura Sistemas Operativo
 ## Agradecimientos
 Melchor(melchor9000): https://github.com/melchor629 Asesoramiento y gurú things.
 
-Alec(Alkesst): https://github.com/Alkesst (por la idea de la función print_shell).
-
 Zu: parte creativa, da name, apoyo rocoso.
 
 ## Contenido
